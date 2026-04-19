@@ -449,7 +449,7 @@ function Welcome({ onNext }) {
         </svg>
       </div>
 
-      <div style={{ marginTop: 'auto', marginBottom: 20 }}>
+      <div style={{ marginTop: 32, marginBottom: 20 }}>
         <h1 style={{
           margin: 0, fontFamily: SERIF, fontSize: 30, fontWeight: 400,
           letterSpacing: -0.6, lineHeight: 1.1, color: TEB.ink,
