@@ -46,6 +46,8 @@ function submitQuoteToMailerLite({ email, name }) {
 // ─── Screen 3 — Pick services ────────────────────────────────
 function ServicesStep({ state, setState, onNext, onBack }) {
   const { selected = {} } = state;
+  const [pensionModal, setPensionModal] = React.useState(false);
+  const [infoOpen, setInfoOpen] = React.useState(null); // service title string
 
   // Auto-select any locked/_defaultOn services once
   React.useEffect(() => {
@@ -61,8 +63,11 @@ function ServicesStep({ state, setState, onNext, onBack }) {
   const toggle = (svc) => {
     if (svc._locked) return; // can't untick non-negotiable
     const next = { ...selected };
+    const turningOn = !next[svc.title];
     if (next[svc.title]) delete next[svc.title]; else next[svc.title] = {};
     setState({ selected: next });
+    // Pop-up for Auto Enrolment Pension — regulator duties flagged on select
+    if (turningOn && svc.title === 'Auto Enrolment Pension') setPensionModal(true);
   };
 
   // Group services by section
@@ -95,9 +100,12 @@ function ServicesStep({ state, setState, onNext, onBack }) {
           <div style={{ fontFamily: SERIF, fontSize: 22, color: TEB.ink }}>
             {count ? `${gbp(est)} / mo` : '—'}
           </div>
+          {count > 0 && (
+            <div style={{ fontSize: 10.5, color: TEB.muted, marginTop: 1, letterSpacing: 0.2 }}>ex VAT</div>
+          )}
         </div>
         <div style={{ flex: 1.2 }}>
-          <PrimaryButton label={`Configure · ${count}`} onClick={onNext} disabled={!count}/>
+          <PrimaryButton label={`Tailor my quote · ${count}`} onClick={onNext} disabled={!count}/>
         </div>
       </div>
     }>
@@ -139,6 +147,22 @@ function ServicesStep({ state, setState, onNext, onBack }) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                         <span style={{ fontSize: 14, letterSpacing: -0.2, color: TEB.ink }}>{svc.title}</span>
+                        {(window.SERVICE_DESCRIPTIONS || {})[svc.title] && (
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => { e.stopPropagation(); setInfoOpen(svc.title); }}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setInfoOpen(svc.title); } }}
+                            aria-label={`What's ${svc.title}?`}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              width: 18, height: 18, borderRadius: '50%', cursor: 'pointer',
+                              background: TEB.surfaceAlt, border: `1px solid ${TEB.border}`,
+                              color: TEB.inkSoft, fontSize: 11, fontFamily: SERIF, fontStyle: 'italic', fontWeight: 600,
+                              lineHeight: 1, userSelect: 'none', flexShrink: 0,
+                            }}
+                          >i</span>
+                        )}
                         {locked && (
                           <span style={{
                             fontSize: 10, fontWeight: 700, letterSpacing: 0.8,
@@ -177,14 +201,218 @@ function ServicesStep({ state, setState, onNext, onBack }) {
           </div>
         </div>
       </div>
+      {pensionModal && <PensionRegulatorModal onClose={() => setPensionModal(false)}/>}
+      {infoOpen && (window.SERVICE_DESCRIPTIONS || {})[infoOpen] && (
+        <HelperSheet
+          title={infoOpen}
+          body={(window.SERVICE_DESCRIPTIONS[infoOpen]).body}
+          onClose={() => setInfoOpen(null)}
+        />
+      )}
     </Shell>
+  );
+}
+
+// ─── Pension regulator note ─────────────────────────────────
+// Fires when a client ticks Auto Enrolment Pension — surfaces the fact
+// that TPR duties exist (declaration of compliance, re-enrolment every 3 yrs,
+// ongoing assessments) without bogging down the quote flow. Soft-inform only.
+function PensionRegulatorModal({ onClose }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 50,
+      background: 'rgba(15, 25, 35, 0.55)', backdropFilter: 'blur(2px)',
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+    }} onClick={onClose}>
+      <div style={{
+        width: '100%', maxWidth: 420, background: '#fff',
+        borderTopLeftRadius: 20, borderTopRightRadius: 20,
+        padding: '22px 22px 26px', fontFamily: SANS,
+        animation: 'tebSheetIn 0.22s ease-out',
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{
+          width: 40, height: 4, borderRadius: 2,
+          background: TEB.border, margin: '0 auto 18px',
+        }}/>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: '50%',
+            background: `${TEB.primary}18`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M10 2l7 3v5c0 4-3 7-7 8-4-1-7-4-7-8V5l7-3z" stroke={TEB.primary} strokeWidth="1.6" strokeLinejoin="round"/>
+              <path d="M7.5 10l2 2 3.5-4" stroke={TEB.primary} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <div style={{
+            fontFamily: SERIF, fontSize: 22, color: TEB.ink, letterSpacing: -0.3,
+          }}>A note on pension duties</div>
+        </div>
+
+        <div style={{
+          fontSize: 14.5, color: TEB.inkSoft, lineHeight: 1.6, marginBottom: 16,
+        }}>
+          As an employer you've got ongoing responsibilities to <b style={{ color: TEB.ink }}>The Pensions Regulator</b> — declaration of compliance, re-enrolment every 3 years, record-keeping, and regular assessments.
+        </div>
+
+        <div style={{
+          padding: 14, borderRadius: 12,
+          background: TEB.surfaceAlt, border: `1px solid ${TEB.border}`,
+          fontSize: 13.5, color: TEB.ink, lineHeight: 1.55, marginBottom: 18,
+        }}>
+          <b>We'll talk through exactly what falls to you vs. what we handle</b> on your free discovery call — nothing to sort right now.
+        </div>
+
+        <button onClick={onClose} style={{
+          width: '100%', padding: '13px', borderRadius: 10,
+          background: TEB.primary, border: 'none', color: '#fff',
+          fontFamily: SANS, fontSize: 14.5, fontWeight: 500, cursor: 'pointer',
+        }}>Got it — carry on</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Essential software bundle explainer ────────────────────
+// Inline disclosure on the locked "Essential software bundle" card — expands
+// to show what each tool does. Not a modal: the client can't opt out, so we're
+// not interrupting a decision, just helping them understand value for the £15.
+function EssentialBundleCard() {
+  const [open, setOpen] = React.useState(false);
+  const tools = [
+    { name: 'Streem',  sub: 'Pulls bank statements from 300+ UK banks, automatically.', href: 'https://streemconnect.com/' },
+    { name: 'Apron',   sub: 'Our document hub. Snap photos of receipts and paperwork from your phone and it all flows straight to us — optional customer payment links available if you\'d like to get paid through it too.', href: 'https://getapron.com/' },
+    { name: 'Xenon',   sub: 'Monthly health checks on your books — catches issues early.', href: 'https://www.xenonconnect.com/' },
+    { name: 'Adsum',   sub: 'Secure HMRC tax portal for filings and correspondence.', href: 'https://www.adsum-works.com/' },
+    { name: 'Engager', sub: 'Your client portal: e-signing, secure documents, task updates.', href: 'https://engager.app/' },
+  ];
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{
+        fontSize: 13, color: TEB.inkSoft, lineHeight: 1.55, marginBottom: 10,
+      }}>
+        The Ethical Bookkeeper uses the latest secure software and portals to streamline your services and make your life easier.
+      </div>
+      <button onClick={() => setOpen(o => !o)} style={{
+        background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+        fontFamily: SANS, fontSize: 12.5, fontWeight: 600, color: TEB.primary,
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+      }}>
+        {open ? '− Hide what\'s included' : '+ What\'s included?'}
+      </button>
+      {open && (
+        <div style={{
+          marginTop: 12,
+          border: `1px solid ${TEB.border}`,
+          borderRadius: 10,
+          overflow: 'hidden',
+        }}>
+          {tools.map((t, i) => (
+            <div key={t.name} style={{
+              padding: '11px 12px',
+              borderTop: i === 0 ? 'none' : `1px solid ${TEB.border}`,
+              background: TEB.surfaceAlt,
+            }}>
+              <div style={{ fontSize: 13.5, fontFamily: SANS, color: TEB.ink, fontWeight: 600 }}>{t.name}</div>
+              <div style={{ fontSize: 12.5, color: TEB.inkSoft, marginTop: 2, lineHeight: 1.45 }}>{t.sub}</div>
+              {t.href && (
+                <a href={t.href} target="_blank" rel="noopener noreferrer" style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  marginTop: 6, fontSize: 12, fontFamily: SANS, fontWeight: 600,
+                  color: TEB.primary, textDecoration: 'none',
+                }}>
+                  Haven't heard of {t.name}? Take a look
+                  <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+                    <path d="M6 3h7v7M13 3L5 11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Reusable bottom-sheet for tiny explainers ─────────────
+// Lightweight cousin of PensionRegulatorModal — plain text, one CTA.
+// Used for inline "Not sure?" helpers against specific driver labels.
+function HelperSheet({ title, body, link, onClose }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 50,
+      background: 'rgba(15, 25, 35, 0.55)', backdropFilter: 'blur(2px)',
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+    }} onClick={onClose}>
+      <div style={{
+        width: '100%', maxWidth: 420, background: '#fff',
+        borderTopLeftRadius: 20, borderTopRightRadius: 20,
+        padding: '22px 22px 26px', fontFamily: SANS,
+        animation: 'tebSheetIn 0.22s ease-out',
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{
+          width: 40, height: 4, borderRadius: 2,
+          background: TEB.border, margin: '0 auto 18px',
+        }}/>
+        <div style={{
+          fontFamily: SERIF, fontSize: 22, color: TEB.ink,
+          letterSpacing: -0.3, marginBottom: 12,
+        }}>{title}</div>
+        <div style={{
+          fontSize: 14.5, color: TEB.inkSoft, lineHeight: 1.6, marginBottom: 14,
+        }}>{body}</div>
+        {link && (
+          <a href={link.href} target="_blank" rel="noopener noreferrer" style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+            padding: '12px 14px', marginBottom: 14,
+            borderRadius: 10, textDecoration: 'none',
+            background: TEB.surfaceAlt, border: `1px solid ${TEB.border}`,
+            fontFamily: SANS, color: TEB.ink,
+          }}>
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 600 }}>{link.label}</div>
+              {link.sub && <div style={{ fontSize: 12, color: TEB.muted, marginTop: 2 }}>{link.sub}</div>}
+            </div>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M6 3h7v7M13 3L5 11M3 7v6h6" stroke={TEB.primary} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </a>
+        )}
+        <button onClick={onClose} style={{
+          width: '100%', padding: '13px', borderRadius: 10,
+          background: TEB.primary, border: 'none', color: '#fff',
+          fontFamily: SANS, fontSize: 14.5, fontWeight: 500, cursor: 'pointer',
+        }}>Got it</button>
+      </div>
+    </div>
   );
 }
 
 // Driver row — renders one driver (range/select/numeric/frequency/boolean/select_count)
 function DriverRow({ svc, name, d, cfg, setCfg }) {
   const [expanded, setExpanded] = React.useState(false);
+  const [helpOpen, setHelpOpen] = React.useState(false);
   const LIMIT = 8;
+
+  // Inline "Not sure?" helper surface — attached to specific driver labels we
+  // know folks commonly don't remember (confirmation statement due month, etc).
+  // Keeps the quote moving without dragging them into Companies House.
+  const helperLabel =
+    /^Month confirmation statement is due$/i.test(name) ? 'Not sure when?' :
+    null;
+  const helperBody =
+    /^Month confirmation statement is due$/i.test(name) ? {
+      title: "Don't know the month?",
+      body: "Your confirmation statement is due yearly, around the anniversary of incorporation — this is a director's responsibility. You can check the exact date at Companies House using your company name. If it's wrong now, no drama — we'll correct it on the discovery call, though note it may affect any catch-up calculation.",
+      link: {
+        href: 'https://find-and-update.company-information.service.gov.uk/',
+        label: 'Check on Companies House',
+        sub: 'Free — search by your company name',
+      },
+    } : null;
 
   // Build option list based on type
   let opts = d.options || [];
@@ -203,18 +431,46 @@ function DriverRow({ svc, name, d, cfg, setCfg }) {
 
   return (
     <div style={{ marginTop: 14 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: TEB.inkSoft, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{name}</div>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+        gap: 8, marginBottom: 8,
+      }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: TEB.inkSoft, textTransform: 'uppercase', letterSpacing: 1 }}>{name}</div>
+        {helperLabel && (
+          <button onClick={() => setHelpOpen(true)} style={{
+            background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
+            fontFamily: SANS, fontSize: 12, color: TEB.primary, fontWeight: 500,
+            textDecoration: 'underline', textUnderlineOffset: 2,
+          }}>{helperLabel}</button>
+        )}
+      </div>
 
-      {d.type === 'numeric' ? (
-        <input type="number" min="1" value={cfg[name] || 1}
-          onChange={e => setCfg(svc.title, name, +e.target.value || 1)}
-          style={{
-            width: '100%', height: 44, borderRadius: 10,
-            border: `1.5px solid ${TEB.border}`, padding: '0 12px',
-            fontFamily: SANS, fontSize: 15, color: TEB.ink, outline: 'none',
-            boxSizing: 'border-box',
-          }}/>
-      ) : (d.type === 'select_count' || (d.type === 'select' && opts.length > 6)) ? (
+      {helpOpen && helperBody && (
+        <HelperSheet
+          title={helperBody.title}
+          body={helperBody.body}
+          link={helperBody.link}
+          onClose={() => setHelpOpen(false)}
+        />
+      )}
+
+      {d.type === 'numeric' ? (() => {
+        const choices = [1,2,3,4,5,6,7,8,9,10,12,15,20,25,30,40,50,75,100,150,200];
+        const cur = +cfg[name] || 1;
+        return (
+          <select
+            value={choices.includes(cur) ? cur : 1}
+            onChange={e => setCfg(svc.title, name, +e.target.value || 1)}
+            style={{
+              width: '100%', height: 44, borderRadius: 10,
+              border: `1.5px solid ${TEB.border}`, padding: '0 12px',
+              fontFamily: SANS, fontSize: 15, color: TEB.ink, outline: 'none',
+              background: '#fff', boxSizing: 'border-box', appearance: 'menulist',
+            }}>
+            {choices.map(n => <option key={n} value={n}>{n}{n === 200 ? '+' : ''}</option>)}
+          </select>
+        );
+      })() : (d.type === 'select_count' || (d.type === 'select' && opts.length > 6)) ? (
         <select
           value={cfg[name] || opts[0].label}
           onChange={e => setCfg(svc.title, name, e.target.value)}
@@ -293,6 +549,7 @@ function ConfigureStep({ state, setState, onNext, onBack }) {
         <div style={{ flex: 1, fontFamily: SANS }}>
           <div style={{ fontSize: 11, color: TEB.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: 700 }}>Monthly</div>
           <div style={{ fontFamily: SERIF, fontSize: 22, color: TEB.ink }}>{gbp(monthly)}</div>
+          <div style={{ fontSize: 10.5, color: TEB.muted, marginTop: 1, letterSpacing: 0.2 }}>ex VAT</div>
         </div>
         <div style={{ flex: 1.2 }}>
           <PrimaryButton label="See my quote" onClick={onNext}/>
@@ -339,14 +596,34 @@ function ConfigureStep({ state, setState, onNext, onBack }) {
                   <div style={{ fontFamily: SERIF, fontSize: 18, color: TEB.primary, whiteSpace: 'nowrap' }}>{gbp(rowPrice)}<span style={{ fontSize: 12, color: TEB.muted, fontFamily: SANS }}>{billingSuffix(svc)}</span></div>
                 )}
               </div>
+              {!svc._locked && (
+                <button onClick={() => {
+                  const nextSel = { ...selected };
+                  delete nextSel[svc.title];
+                  setState({ selected: nextSel });
+                }} style={{
+                  marginTop: 6,
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  padding: 0, fontFamily: SANS, fontSize: 12.5, color: TEB.muted,
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  textDecoration: 'underline', textUnderlineOffset: 2,
+                }}>
+                  <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                    <path d="M2 2l7 7M9 2l-7 7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                  </svg>
+                  Remove from quote
+                </button>
+              )}
               {driverEntries.length === 0 && !svc._locked && (
                 <div style={{ fontSize: 13, color: TEB.inkSoft, marginTop: 8 }}>Fixed fee · no options</div>
               )}
-              {svc._locked && (
+              {svc._locked && svc.title === 'Essential software bundle' ? (
+                <EssentialBundleCard/>
+              ) : svc._locked ? (
                 <div style={{ fontSize: 12.5, color: TEB.inkSoft, marginTop: 8, lineHeight: 1.5 }}>
                   Non-negotiable — covers document capture, bank feeds, tax portal & secure client portal.
                 </div>
-              )}
+              ) : null}
               {isCatchUp && (
                 <div style={{
                   marginTop: 10, padding: '10px 12px', borderRadius: 10,
@@ -429,8 +706,111 @@ function ConfigureStep({ state, setState, onNext, onBack }) {
   );
 }
 
+// ─── Subscription addon panel (shown on QuoteStep) ───────────
+function SubscriptionAddonPanel({ state, setState }) {
+  const swKey = state.software || 'Xero';
+  const sw = (window.SOFTWARE_TIERS || {})[swKey];
+  if (!sw) return null;
+  const recId = window.recommendTier ? window.recommendTier(swKey, state.turnover) : sw.tiers[0].id;
+  const wants = !!state.buySoftwareViaTEB;
+  const selectedTier = state.softwareTier || recId;
+
+  const toggleWants = () => setState({
+    buySoftwareViaTEB: !wants,
+    softwareTier: !wants ? recId : undefined,
+  });
+
+  return (
+    <div style={{ marginTop: 22 }}>
+      <div style={{
+        fontSize: 11, fontWeight: 700, color: TEB.inkSoft,
+        textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 8,
+      }}>Optional add-on</div>
+
+      <label style={{
+        display: 'flex', gap: 12, alignItems: 'flex-start', cursor: 'pointer',
+        padding: '14px 14px', borderRadius: 14,
+        border: `1.5px solid ${wants ? TEB.primary : TEB.border}`,
+        background: wants ? `${TEB.primary}0A` : TEB.surface,
+      }} onClick={toggleWants}>
+        <div style={{
+          width: 22, height: 22, borderRadius: 6, flexShrink: 0, marginTop: 1,
+          border: `1.5px solid ${wants ? TEB.primary : TEB.border}`,
+          background: wants ? TEB.primary : 'transparent',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {wants && <svg width="12" height="9" viewBox="0 0 12 9"><path d="M1 4.5L4.5 8L11 1" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>}
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, color: TEB.ink, fontFamily: SANS, fontWeight: 500 }}>
+            Add a {sw.label} subscription through TEB
+          </div>
+          <div style={{ fontSize: 12.5, color: TEB.inkSoft, marginTop: 3, lineHeight: 1.5, fontFamily: SANS }}>
+            We'll buy & manage your licence — billed alongside your bookkeeping fees. Or skip this and buy it yourself direct from {swKey.startsWith('Sage') ? 'Sage' : 'Xero'}.
+          </div>
+        </div>
+      </label>
+
+      {wants && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 12, color: TEB.inkSoft, marginBottom: 8, fontFamily: SANS, lineHeight: 1.5 }}>
+            <b style={{ color: TEB.ink }}>Based on your turnover, {sw.tiers.find(t => t.id === recId)?.name} looks about right.</b> You can change on the discovery call.
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {sw.tiers.map(t => {
+              const active = selectedTier === t.id;
+              const recommended = t.id === recId;
+              return (
+                <button key={t.id}
+                  onClick={() => setState({ softwareTier: t.id })}
+                  style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 12,
+                    padding: '12px 14px', textAlign: 'left', fontFamily: SANS,
+                    background: active ? `${TEB.primary}0C` : TEB.surface,
+                    border: `1.5px solid ${active ? TEB.primary : TEB.border}`,
+                    borderRadius: 12, cursor: 'pointer',
+                  }}>
+                  <div style={{
+                    width: 20, height: 20, borderRadius: '50%', flexShrink: 0, marginTop: 2,
+                    border: `1.5px solid ${active ? TEB.primary : TEB.border}`,
+                    background: active ? TEB.primary : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {active && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff' }}/>}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 14, color: TEB.ink, fontWeight: 500 }}>{t.name}</span>
+                      {recommended && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, letterSpacing: 0.8,
+                          textTransform: 'uppercase', color: TEB.primary,
+                          background: `${TEB.primary}14`, padding: '2px 7px', borderRadius: 4,
+                        }}>Recommended</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 12, color: TEB.muted, marginTop: 3, lineHeight: 1.45 }}>
+                      {t.summary}
+                    </div>
+                  </div>
+                  <div style={{ fontFamily: SANS, fontSize: 14, color: TEB.ink, whiteSpace: 'nowrap' }}>
+                    {gbp(t.price)}<span style={{ color: TEB.muted, fontSize: 12 }}>/mo</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 11.5, color: TEB.muted, marginTop: 10, lineHeight: 1.5, fontFamily: SANS }}>
+            Prices ex-VAT. We'll confirm the right fit on your discovery call.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Screen 5 — Quote summary ────────────────────────────────
-function QuoteStep({ state, onNext, onBack }) {
+function QuoteStep({ state, setState, onNext, onBack }) {
   const selected = state.selected || {};
   const svcs = (window.PRICING || []).filter(s => selected[s.title]);
   let monthly = 0, oneoff = 0;
@@ -470,8 +850,8 @@ function QuoteStep({ state, onNext, onBack }) {
       + `Turnover: ${state.turnover || '—'}\n\n`
       + `SERVICES\n${quoteDetails()}\n\n`
       + `—\n`
-      + `MONTHLY TOTAL: ${gbp(monthly)}/month\n`
-      + (oneoff > 0 ? `ONE-OFF TOTAL: ${gbp(oneoff)} (billed once on first invoice)\n` : '')
+      + `MONTHLY TOTAL: ${gbp(monthly)}/month (ex VAT)\n`
+      + (oneoff > 0 ? `ONE-OFF TOTAL: ${gbp(oneoff)} (billed once on first invoice, ex VAT)\n` : '')
       + `\n`
       + `Generated at theethicalbookkeeper.co.uk — no obligation, adjustable on the discovery call.\n`;
     const subject = `My TEB quote — ${gbp(monthly)}/mo`
@@ -505,7 +885,7 @@ function QuoteStep({ state, onNext, onBack }) {
               {gbp(monthly)}<span style={{ fontSize: 15, fontFamily: SANS, opacity: 0.85 }}> / month</span>
             </div>
             <div style={{ fontSize: 12, opacity: 0.8, marginTop: 4, fontFamily: SANS }}>
-              ongoing · billed monthly
+              ongoing · billed monthly · ex VAT
             </div>
             {oneoff > 0 && (
               <div style={{
@@ -516,7 +896,7 @@ function QuoteStep({ state, onNext, onBack }) {
                   {gbp(oneoff)}<span style={{ fontSize: 14, fontFamily: SANS, opacity: 0.85 }}> one-off</span>
                 </div>
                 <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4, fontFamily: SANS }}>
-                  catch-up charges · billed once on your first invoice
+                  catch-up charges · billed once on your first invoice · ex VAT
                 </div>
               </div>
             )}
@@ -929,4 +1309,4 @@ function ThanksStep({ state, path, onRestart }) {
   );
 }
 
-Object.assign(window, { ServicesStep, ConfigureStep, QuoteStep, DetailsStep, BookStep, ThanksStep });
+Object.assign(window, { ServicesStep, ConfigureStep, QuoteStep, DetailsStep, BookStep, ThanksStep, HelperSheet });

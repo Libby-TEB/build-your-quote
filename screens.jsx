@@ -475,7 +475,13 @@ function BusinessStep({ state, setState, onNext, onBack }) {
     { id: 'ptn', label: 'Partnership', sub: 'Two or more owners' },
     { id: 'cic', label: 'CIC or charity', sub: 'Non-profit or community-led' },
   ];
-  const softwares = ['Xero', 'Sage Cloud', 'Sage 50'];
+  const softwares = ['Xero', 'Sage Cloud', 'Sage 50', 'QuickBooks'];
+  const [qbModal, setQbModal] = React.useState(false);
+  const [yeHelpOpen, setYeHelpOpen] = React.useState(false);
+  const pickSoftware = (s) => {
+    if (s === 'QuickBooks') { setQbModal(true); return; }
+    setState({ software: s });
+  };
   return (
     <Shell footer={<PrimaryButton label="Continue" onClick={onNext} disabled={!state.businessName || !state.entity}/>}>
       <ScreenHeader eyebrow="Step 1 of 5" step={1} total={5} onBack={onBack}
@@ -523,10 +529,19 @@ function BusinessStep({ state, setState, onNext, onBack }) {
           placeholder="Select a range…"/>
 
         {state.entity && state.entity !== 'sole' && (
-          <SelectField label="Your business year-end"
-            value={state.yearEnd} onChange={v => setState({ yearEnd: v })}
-            options={MONTHS}
-            placeholder="Select a month…"/>
+          <div style={{ marginBottom: -6 }}>
+            <SelectField label="Your business year-end"
+              value={state.yearEnd} onChange={v => setState({ yearEnd: v })}
+              options={MONTHS}
+              placeholder="Select a month…"/>
+            <div style={{ marginTop: -6, marginBottom: 14 }}>
+              <button onClick={() => setYeHelpOpen(true)} style={{
+                background: 'none', border: 'none', padding: 0,
+                color: TEB.primary, fontFamily: SANS, fontSize: 12.5,
+                textDecoration: 'underline', cursor: 'pointer',
+              }}>Not sure when?</button>
+            </div>
+          </div>
         )}
         {state.entity === 'sole' && (
           <div style={{
@@ -551,7 +566,7 @@ function BusinessStep({ state, setState, onNext, onBack }) {
           {softwares.map(s => {
             const active = state.software === s;
             return (
-              <button key={s} onClick={() => setState({ software: s })} style={{
+              <button key={s} onClick={() => pickSoftware(s)} style={{
                 padding: '9px 14px', borderRadius: 999,
                 background: active ? TEB.primary : TEB.surface,
                 color: active ? '#fff' : TEB.ink,
@@ -561,8 +576,217 @@ function BusinessStep({ state, setState, onNext, onBack }) {
             );
           })}
         </div>
+
+        {qbModal && (
+          <QuickBooksModal
+            onClose={() => setQbModal(false)}
+            onMigrate={(target) => { setState({ software: target }); setQbModal(false); }}
+          />
+        )}
+
+        {yeHelpOpen && (
+          <HelperSheet
+            title="Don't know your year-end?"
+            body="Your year-end is usually 12 months after incorporation — as a director, it's your responsibility to know it. If it's wrong now, no drama — we'll correct it on the discovery call, though note it may affect any catch-up calculation for your accounts."
+            link={{
+              href: 'https://find-and-update.company-information.service.gov.uk/',
+              label: 'Check on Companies House',
+              sub: 'Free — search by your company name',
+            }}
+            onClose={() => setYeHelpOpen(false)}
+          />
+        )}
+
       </div>
     </Shell>
+  );
+}
+
+// ─── QuickBooks migration modal ─────────────────────────────
+// Shown as a soft-blocker when a client picks QuickBooks on Step 1.
+// We don't service QB clients — but we offer to migrate them to Xero or Sage
+// as part of onboarding (no fuss, included in setup).
+function QuickBooksModal({ onClose, onMigrate }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 50,
+      background: 'rgba(15, 25, 35, 0.55)', backdropFilter: 'blur(2px)',
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+    }} onClick={onClose}>
+      <div style={{
+        width: '100%', maxWidth: 420, background: '#fff',
+        borderTopLeftRadius: 20, borderTopRightRadius: 20,
+        padding: '22px 22px 26px', fontFamily: SANS,
+        animation: 'tebSheetIn 0.22s ease-out',
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{
+          width: 40, height: 4, borderRadius: 2,
+          background: TEB.border, margin: '0 auto 18px',
+        }}/>
+
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12,
+        }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: '50%',
+            background: `${TEB.amber}22`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <circle cx="10" cy="10" r="8" stroke={TEB.amber} strokeWidth="1.6"/>
+              <path d="M10 6v4.5M10 13.5v0.5" stroke={TEB.amber} strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <div style={{
+            fontFamily: SERIF, fontSize: 22, color: TEB.ink, letterSpacing: -0.3,
+          }}>We don't use QuickBooks</div>
+        </div>
+
+        <div style={{
+          fontSize: 14.5, color: TEB.inkSoft, lineHeight: 1.55, marginBottom: 18,
+        }}>
+          We only work with <b style={{ color: TEB.ink }}>Xero</b> or <b style={{ color: TEB.ink }}>Sage</b>. If you're happy to move, we'll <b style={{ color: TEB.ink }}>migrate your data for you as part of onboarding</b> — no extra fuss, no lost history.
+        </div>
+
+        <div style={{ fontSize: 12, fontWeight: 700, color: TEB.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 8 }}>
+          Migrate me to…
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+          {[
+            { key: 'Xero', label: 'Xero', sub: 'Cloud-first, great for most small businesses' },
+            { key: 'Sage Cloud', label: 'Sage Business Cloud', sub: 'Cloud, includes payroll on all tiers' },
+            { key: 'Sage 50', label: 'Sage 50 Accounts', sub: 'Desktop + cloud sync, power-user features' },
+          ].map(opt => (
+            <button key={opt.key} onClick={() => onMigrate(opt.key)} style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '12px 14px', textAlign: 'left', fontFamily: SANS,
+              background: TEB.surface,
+              border: `1.5px solid ${TEB.border}`,
+              borderRadius: 12, cursor: 'pointer',
+            }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, color: TEB.ink, fontWeight: 500 }}>{opt.label}</div>
+                <div style={{ fontSize: 12, color: TEB.muted, marginTop: 2 }}>{opt.sub}</div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 4l4 4-4 4" stroke={TEB.primary} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          ))}
+        </div>
+
+        <button onClick={onClose} style={{
+          width: '100%', padding: '12px', borderRadius: 10,
+          background: 'transparent', border: `1px solid ${TEB.border}`,
+          fontFamily: SANS, fontSize: 14, color: TEB.inkSoft, cursor: 'pointer',
+        }}>Not right now — I'll stay on QuickBooks</button>
+
+        <style>{`@keyframes tebSheetIn { from { transform: translateY(30px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }`}</style>
+      </div>
+    </div>
+  );
+}
+
+// ─── Software tier comparison ────────────────────────────────
+// Slots under the software pills. Shows 2-4 tier cards with included
+// invoices/bills/bank trans/multi-currency/payroll per tier. Highlights
+// the recommended tier for the client's turnover band (soft badge, no warnings).
+function SoftwareTierPanel({ softwareKey, turnover, selectedTierId, onPick }) {
+  const sw = window.SOFTWARE_TIERS[softwareKey];
+  if (!sw) return null;
+  const recommendedId = window.recommendTier(softwareKey, turnover);
+  const active = selectedTierId || recommendedId;
+
+  const fmt = (f) => {
+    if (!f) return '—';
+    if (f.unlimited) return 'Unlimited';
+    if (f.value === 0) return 'Not included';
+    if (f.value == null) return '—';
+    return `${f.value}${f.unit || ''}`;
+  };
+  const payrollFmt = (p) => {
+    if (!p) return '—';
+    if (p.seats === 0) return 'Not included';
+    return `${p.seats} seat${p.seats === 1 ? '' : 's'}`;
+  };
+
+  return (
+    <div style={{ marginTop: 22 }}>
+      <div style={{
+        fontSize: 11, fontWeight: 700, color: TEB.inkSoft,
+        textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 6,
+      }}>Pick a tier · {sw.label}</div>
+      <div style={{
+        fontSize: 12.5, color: TEB.inkSoft, fontFamily: SANS,
+        lineHeight: 1.45, marginBottom: 12,
+      }}>{sw.tagline} {turnover ? <span>We've highlighted a fit for <strong style={{ color: TEB.ink }}>{turnover}</strong>.</span> : <span>Pick your turnover above for a fit suggestion.</span>}</div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {sw.tiers.map(t => {
+          const isActive = t.id === active;
+          const isRec = t.id === recommendedId;
+          return (
+            <button
+              key={t.id}
+              onClick={() => onPick(t.id)}
+              style={{
+                textAlign: 'left', fontFamily: SANS, cursor: 'pointer',
+                background: isActive ? `${TEB.primary}0A` : TEB.surface,
+                border: `1.5px solid ${isActive ? TEB.primary : TEB.border}`,
+                borderRadius: 14, padding: '14px 14px',
+                display: 'flex', flexDirection: 'column', gap: 10,
+              }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: TEB.ink, letterSpacing: -0.2 }}>
+                  {t.name}
+                </div>
+                <div style={{ fontSize: 13, color: TEB.inkSoft }}>
+                  £{t.price}/mo <span style={{ opacity: 0.7 }}>+ VAT</span>
+                </div>
+                {isRec && (
+                  <span style={{
+                    marginLeft: 'auto', fontSize: 10.5, fontWeight: 700,
+                    color: TEB.primary, background: `${TEB.primary}14`,
+                    padding: '3px 8px', borderRadius: 999,
+                    textTransform: 'uppercase', letterSpacing: 0.8,
+                  }}>Recommended for you</span>
+                )}
+              </div>
+              <div style={{ fontSize: 12.5, color: TEB.inkSoft, lineHeight: 1.4 }}>{t.summary}</div>
+              <div style={{
+                display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 14, rowGap: 6,
+                fontSize: 12, color: TEB.ink,
+                borderTop: `1px solid ${TEB.border}`, paddingTop: 10, marginTop: 2,
+              }}>
+                <TierRow label="Invoices" value={fmt(t.invoices)} note={t.invoices && t.invoices.note}/>
+                <TierRow label="Bills" value={fmt(t.bills)} note={t.bills && t.bills.note}/>
+                <TierRow label="Bank trans" value={fmt(t.bankTrans)} note={t.bankTrans && t.bankTrans.note}/>
+                <TierRow label="Multi-currency" value={t.multiCurrency ? 'Yes' : 'No'}/>
+                <TierRow label="Payroll" value={payrollFmt(t.payroll)} note={t.payroll && t.payroll.note} span={2}/>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <div style={{
+        fontSize: 11, color: TEB.inkFaint, fontFamily: SANS,
+        lineHeight: 1.45, marginTop: 10,
+      }}>
+        RRP from the provider's website. Pricing &amp; limits change — we'll confirm current figures before you subscribe.
+      </div>
+    </div>
+  );
+}
+
+function TierRow({ label, value, note, span }) {
+  return (
+    <div style={{ gridColumn: span ? `span ${span}` : 'auto', display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+        <span style={{ color: TEB.inkSoft, fontSize: 11.5, textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 600 }}>{label}</span>
+        <span style={{ color: TEB.ink, fontSize: 12.5, fontWeight: 500, textAlign: 'right' }}>{value}</span>
+      </div>
+      {note && <div style={{ fontSize: 10.5, color: TEB.inkFaint, lineHeight: 1.35 }}>{note}</div>}
+    </div>
   );
 }
 
