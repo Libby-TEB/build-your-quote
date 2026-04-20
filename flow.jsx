@@ -867,8 +867,8 @@ function QuoteStep({ state, setState, onNext, onBack }) {
       </div>
     }>
       <ScreenHeader eyebrow="Step 4 of 5" step={4} total={5} onBack={onBack}
-        title="Your transparent estimate"
-        sub="Indicative pricing based on what you've told us — confirmed on the discovery call."/>
+        title="Your transparent quote"
+        sub="Based on what you've told us so far — we'll confirm it together on the call."/>
 
       <div style={{ padding: '18px 24px 10px' }}>
         <div style={{
@@ -880,13 +880,7 @@ function QuoteStep({ state, setState, onNext, onBack }) {
           <div style={{ position: 'absolute', width: 60, height: 60, borderRadius: '50%',
             background: TEB.pinkHot, top: 46, right: -15 }}/>
           <div style={{ position: 'relative' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', opacity: 0.85 }}>{state.businessName || 'Your estimate'}</div>
-              <div style={{
-                fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase',
-                background: 'rgba(255,255,255,0.22)', padding: '3px 8px', borderRadius: 999,
-              }}>Estimate</div>
-            </div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', opacity: 0.85 }}>{state.businessName || 'Your quote'}</div>
             <div style={{ fontFamily: SERIF, fontSize: 40, marginTop: 6, letterSpacing: -0.8, lineHeight: 1 }}>
               {gbp(monthly)}<span style={{ fontSize: 15, fontFamily: SANS, opacity: 0.85 }}> / month</span>
             </div>
@@ -915,7 +909,7 @@ function QuoteStep({ state, setState, onNext, onBack }) {
               Transparent pricing · no hidden extras
             </div>
             <div style={{ fontSize: 12, opacity: 0.85, marginTop: 10, lineHeight: 1.5, fontFamily: SANS }}>
-              This is an estimate — final pricing will be confirmed on our discovery call, once we've understood your business properly.
+              This is an indicative quote — final pricing is always confirmed on the discovery call, once we've understood your business properly.
             </div>
           </div>
         </div>
@@ -1110,7 +1104,7 @@ function DetailsStep({ state, setState, onNext, onBack }) {
           background: TEB.surfaceAlt, border: `1px solid ${TEB.border}`,
           fontSize: 12, color: TEB.inkSoft, lineHeight: 1.55, fontFamily: SANS,
         }}>
-          This is an <b style={{ color: TEB.ink }}>estimate</b>, not a fixed quote — your final price will be confirmed after our discovery call, once we've understood your business properly. A full Letter of Engagement will be provided before any work begins. Your data is handled in line with our <a href="https://theethicalbookkeeper.co.uk/privacy-policy/" target="_blank" rel="noopener noreferrer" style={{ color: TEB.primary, fontWeight: 500 }}>Privacy Policy</a>.
+          A full Letter of Engagement will be provided before any work begins. Your data is handled in line with our <a href="https://theethicalbookkeeper.co.uk/privacy-policy/" target="_blank" rel="noopener noreferrer" style={{ color: TEB.primary, fontWeight: 500 }}>Privacy Policy</a>.
         </div>
       </div>
     </Shell>
