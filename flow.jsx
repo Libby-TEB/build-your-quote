@@ -65,6 +65,22 @@ function ServicesStep({ state, setState, onNext, onBack }) {
     const next = { ...selected };
     const turningOn = !next[svc.title];
     if (next[svc.title]) delete next[svc.title]; else next[svc.title] = {};
+
+    // Self Assessment add-ons require the Base return
+    const SA_BASE = 'Self Assessment Tax Return - Base';
+    const SA_ADDONS = [
+      'Self Assessment Tax Return - Additional Sections',
+      'Tax Investigation Protection for your personal tax affairs',
+    ];
+    if (turningOn && SA_ADDONS.includes(svc.title) && !next[SA_BASE]) {
+      // User ticked an add-on but hasn't ticked the base — auto-tick the base
+      next[SA_BASE] = {};
+    }
+    if (!turningOn && svc.title === SA_BASE) {
+      // User unticked the base — clear any add-ons that depend on it
+      SA_ADDONS.forEach(t => { delete next[t]; });
+    }
+
     setState({ selected: next });
     // Pop-up for Auto Enrolment Pension — regulator duties flagged on select
     if (turningOn && svc.title === 'Auto Enrolment Pension') setPensionModal(true);
@@ -74,7 +90,8 @@ function ServicesStep({ state, setState, onNext, onBack }) {
   const grouped = {};
   (window.PRICING || []).forEach(s => {
     if (s.section === 'UN Global Goals - What should we support on your behalf?') return;
-    if (s.section === 'Onboarding Process') return;
+    // Only show AML from the Onboarding Process section (it's required by law)
+    if (s.section === 'Onboarding Process' && !/anti money laundering/i.test(s.title)) return;
     (grouped[s.section] ||= []).push(s);
   });
 
@@ -545,12 +562,19 @@ function ConfigureStep({ state, setState, onNext, onBack }) {
 
   return (
     <Shell footer={
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-        <div style={{ flex: 1, fontFamily: SANS }}>
-          <div style={{ fontSize: 11, color: TEB.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: 700 }}>Monthly</div>
-          <div style={{ fontFamily: SERIF, fontSize: 22, color: TEB.ink }}>{gbp(monthly)}</div>
-          <div style={{ fontSize: 10.5, color: TEB.muted, marginTop: 1, letterSpacing: 0.2 }}>ex VAT</div>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div style={{ flex: 1, fontFamily: SANS, minWidth: 0 }}>
+          <div style={{ fontSize: 10, color: TEB.inkSoft, textTransform: 'uppercase', letterSpacing: 1.1, fontWeight: 700 }}>Monthly</div>
+          <div style={{ fontFamily: SERIF, fontSize: 20, color: TEB.ink, lineHeight: 1.1 }}>{gbp(monthly)}</div>
+          <div style={{ fontSize: 10, color: TEB.muted, marginTop: 1, letterSpacing: 0.2 }}>ex VAT</div>
         </div>
+        {oneoff > 0 && (
+          <div style={{ flex: 1, fontFamily: SANS, minWidth: 0 }}>
+            <div style={{ fontSize: 10, color: TEB.inkSoft, textTransform: 'uppercase', letterSpacing: 1.1, fontWeight: 700 }}>One-off</div>
+            <div style={{ fontFamily: SERIF, fontSize: 20, color: TEB.ink, lineHeight: 1.1 }}>{gbp(oneoff)}</div>
+            <div style={{ fontSize: 10, color: TEB.muted, marginTop: 1, letterSpacing: 0.2 }}>ex VAT</div>
+          </div>
+        )}
         <div style={{ flex: 1.2 }}>
           <PrimaryButton label="See my quote" onClick={onNext}/>
         </div>
@@ -619,6 +643,10 @@ function ConfigureStep({ state, setState, onNext, onBack }) {
               )}
               {svc._locked && svc.title === 'Essential software bundle' ? (
                 <EssentialBundleCard/>
+              ) : svc._locked && /anti money laundering/i.test(svc.title) ? (
+                <div style={{ fontSize: 12.5, color: TEB.inkSoft, marginTop: 8, lineHeight: 1.5 }}>
+                  Required by law (MLR 2017) for every new client — verifies each beneficial owner (&gt;25% ownership), anyone with significant control, and the signatory. One-off charge, done via our secure digital portal in minutes.
+                </div>
               ) : svc._locked ? (
                 <div style={{ fontSize: 12.5, color: TEB.inkSoft, marginTop: 8, lineHeight: 1.5 }}>
                   Non-negotiable — covers document capture, bank feeds, tax portal & secure client portal.

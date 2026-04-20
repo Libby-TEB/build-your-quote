@@ -8,7 +8,7 @@ window.SERVICE_DESCRIPTIONS = {
     body: "We'll send friendly, firm reminders to your customers who haven't paid, so you don't have to have the awkward conversation. You'll see exactly who's been chased, when, and what they said — all without ever having to log in and check.",
   },
 
-  'Processing Purchase Invoices': {
+  'Purchase Invoices': {
     body: "Every invoice and receipt from your suppliers — captured, categorised, and matched up against payments. Nothing missed, nothing miscoded. You always know what you owe and who to.",
   },
 
@@ -113,7 +113,7 @@ window.SERVICE_DESCRIPTIONS = {
   },
 
   'Anti Money Laundering (AML)': {
-    body: "Required by law for every new client — we verify your ID, address, and business details. A quick digital check via our secure portal. One-off charge, legally necessary, done in minutes.",
+    body: "Legally required for every new client under MLR 2017 — we verify the identity and address of each beneficial owner (anyone owning or controlling more than 25%), any director with significant control, and anyone signing on behalf of the business. A quick digital check via our secure portal. One-off charge, done in minutes. The exact number of people needing verification will be confirmed on the discovery call.",
   },
 
   'Software Migration/Setup': {
@@ -124,7 +124,7 @@ window.SERVICE_DESCRIPTIONS = {
     body: "You tell us who to invoice and for what — we raise it on Xero or Sage, send it to your customer, and track it to payment. One less admin job cluttering your evening.",
   },
 
-  'Paying Staff Salaries & Expenses': {
-    body: "We prepare the monthly pay run — salaries plus any expense reimbursements — and set it up as a batch for you to approve and release. Quick, accurate, and auditable.",
+  'Staff & Expense Payments': {
+    body: "We set up the physical payment run — staff salaries plus any expense reimbursements — as a batch for you to approve and release from your bank. Quick, accurate, and auditable. (Payroll calculation itself sits under Payroll Services.)",
   },
 };
